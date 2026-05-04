@@ -1,0 +1,26 @@
+/**
+ * Circular weekday toggles for Repeat on (weekly recurrence).
+ */
+.fi-fr-repeat-on-weekdays.fi-fo-toggle-buttons.fi-inline {
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+}
+
+.fi-fr-repeat-on-weekdays .fi-fo-toggle-buttons-btn-ctn .fi-btn.fi-fr-repeat-on-btn {
+    box-sizing: border-box;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem !important;
+    min-width: 2.25rem !important;
+    max-width: 2.25rem !important;
+    height: 2.25rem !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    border-radius: 9999px;
+    font-weight: 600;
+}
+
+.fi-fr-repeat-on-weekdays .fi-fo-toggle-buttons-btn-ctn .fi-btn.fi-fr-repeat-on-btn.fi-size-sm {
+    font-size: 0.8125rem;
+}

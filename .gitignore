@@ -1,0 +1,36 @@
+# Dependencies
+/vendor
+/node_modules
+
+# IDE
+/.idea
+/.vscode
+*.sublime-project
+*.sublime-workspace
+
+# Testing
+/.phpunit.cache
+/build
+/coverage
+*.cache
+
+# Environment
+.env
+.env.backup
+.env.production
+
+# Laravel
+/storage/*.key
+/public/hot
+/public/storage
+
+# Composer
+composer.lock
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+/dist
+*.log
