@@ -54,3 +54,24 @@ test('uses fallback anchor when occurrences are empty', function () {
         ->and($calendar['months'][0]['label'])->toContain('2025')
         ->and($calendar['months'][1]['label'])->toContain('2025');
 });
+
+test('preview occurrence limit spans through end of last displayed month', function () {
+    config(['filament-recurrence.calendar_preview_month_count' => 2]);
+
+    expect(OccurrenceCalendar::previewOccurrenceLimitForMonthGrids(Carbon::parse('2026-05-06')))
+        ->toBe(56);
+});
+
+test('preview occurrence limit scales with calendar_preview_month_count', function () {
+    config(['filament-recurrence.calendar_preview_month_count' => 3]);
+
+    // Through July 31 from May 6: remainder of May + June + July.
+    expect(OccurrenceCalendar::previewOccurrenceLimitForMonthGrids(Carbon::parse('2026-05-06')))
+        ->toBe(87);
+});
+
+test('preview occurrence limit without start date uses upper bound from month count', function () {
+    config(['filament-recurrence.calendar_preview_month_count' => 2]);
+
+    expect(OccurrenceCalendar::previewOccurrenceLimitForMonthGrids(null))->toBe(62);
+});

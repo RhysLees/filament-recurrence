@@ -8,6 +8,34 @@ use Carbon\CarbonInterface;
 class OccurrenceCalendar
 {
     /**
+     * How many occurrences to load so every in-grid day from the start date through the
+     * end of the last preview month can be highlighted (e.g. daily rules fill both months).
+     */
+    public static function previewOccurrenceLimitForMonthGrids(?CarbonInterface $startDate): int
+    {
+        $monthCount = self::calendarPreviewMonthCount();
+
+        if (! $startDate) {
+            return max(1, $monthCount * 31);
+        }
+
+        $rangeStart = Carbon::instance($startDate)->startOfDay();
+        $anchor = $rangeStart->copy()->startOfMonth();
+        $rangeEnd = $anchor->copy()->addMonths($monthCount - 1)->endOfMonth()->startOfDay();
+
+        if ($rangeStart->greaterThan($rangeEnd)) {
+            return 1;
+        }
+
+        return $rangeStart->diffInDays($rangeEnd) + 1;
+    }
+
+    protected static function calendarPreviewMonthCount(): int
+    {
+        return max(1, min(3, (int) config('filament-recurrence.calendar_preview_month_count', 2)));
+    }
+
+    /**
      * Build two side-by-side month grids for the occurrence calendar preview.
      *
      * @param  array<int, CarbonInterface>  $occurrences
@@ -32,7 +60,7 @@ class OccurrenceCalendar
 
         $months = [];
         $cursor = $anchor->copy();
-        $monthCount = max(1, min(3, (int) config('filament-recurrence.calendar_preview_month_count', 2)));
+        $monthCount = self::calendarPreviewMonthCount();
 
         for ($m = 0; $m < $monthCount; $m++) {
             $months[] = self::buildMonthGrid($cursor->copy(), $occurrenceKeys, $firstOccurrenceKey);

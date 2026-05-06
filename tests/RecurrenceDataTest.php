@@ -70,6 +70,17 @@ test('can generate human readable description', function () {
         ->and($description)->toContain('week');
 });
 
+test('human readable preview time uses start datetime without timezone conversion', function () {
+    $data = new RecurrenceData(
+        frequency: 'DAILY',
+        interval: 1,
+        startDate: Carbon::parse('2026-05-06 17:49:00', 'UTC'),
+        timezone: 'America/New_York',
+    );
+
+    expect($data->toHumanReadable())->toContain('17:49');
+});
+
 test('human readable preview includes start end dates time and occurrence count when set', function () {
     $withRangeAndTime = new RecurrenceData(
         frequency: 'MONTHLY',
@@ -134,6 +145,70 @@ test('weekly recurrence on specific days', function () {
     expect($occurrences[0]->dayOfWeek)->toBe(Carbon::MONDAY)
         ->and($occurrences[1]->dayOfWeek)->toBe(Carbon::WEDNESDAY)
         ->and($occurrences[2]->dayOfWeek)->toBe(Carbon::FRIDAY);
+});
+
+test('monthly week chosen without weekdays never emits orphan BYSETPOS', function () {
+    $data = new RecurrenceData(
+        frequency: 'MONTHLY',
+        interval: 1,
+        startDate: Carbon::parse('2026-05-06 17:49:00'),
+        byDay: null,
+        bySetPos: 2,
+        timezone: 'UTC',
+    );
+
+    expect($data->toRule())->toBe('FREQ=MONTHLY')
+        ->and($data->toRule())->not->toContain('BYSETPOS')
+        ->and($data->getOccurrences(5))->toHaveCount(0)
+        ->and($data->toHumanReadable())->toBe(__('filament-recurrence::recurrence.messages.unable_to_preview'));
+});
+
+test('monthly nth weekdays use ordinal BYDAY tokens without BYSETPOS', function () {
+    $data = new RecurrenceData(
+        frequency: 'MONTHLY',
+        interval: 1,
+        startDate: Carbon::parse('2026-05-06 17:49:00'),
+        byDay: ['MO', 'TU', 'WE', 'FR'],
+        bySetPos: 4,
+        timezone: 'UTC',
+    );
+
+    expect($data->toRule())->toBe('FREQ=MONTHLY;BYDAY=4MO,4TU,4WE,4FR')
+        ->and($data->toRule())->not->toContain('BYSETPOS');
+});
+
+test('monthly fourth weekdays expands each selected weekday in the month', function () {
+    $data = new RecurrenceData(
+        frequency: 'MONTHLY',
+        interval: 1,
+        startDate: Carbon::parse('2026-05-06 17:49:00'),
+        byDay: ['MO', 'TU', 'WE', 'FR'],
+        bySetPos: 4,
+        timezone: 'UTC',
+    );
+
+    $occ = $data->getOccurrences(8);
+
+    expect($occ[0]->format('Y-m-d'))->toBe('2026-05-22')
+        ->and($occ[1]->format('Y-m-d'))->toBe('2026-05-25')
+        ->and($occ[2]->format('Y-m-d'))->toBe('2026-05-26')
+        ->and($occ[3]->format('Y-m-d'))->toBe('2026-05-27');
+});
+
+test('from rule parses ordinal monthly BYDAY into plain weekdays and week position', function () {
+    $data = RecurrenceData::fromRule('FREQ=MONTHLY;BYDAY=-1FR,-1MO');
+
+    expect($data->frequency)->toBe('MONTHLY')
+        ->and($data->byDay)->toBe(['FR', 'MO'])
+        ->and($data->bySetPos)->toBe(-1);
+});
+
+test('from rule keeps legacy monthly plain BYDAY with BYSETPOS', function () {
+    $data = RecurrenceData::fromRule('FREQ=MONTHLY;BYDAY=MO,TU,WE,FR;BYSETPOS=4');
+
+    expect($data->frequency)->toBe('MONTHLY')
+        ->and($data->byDay)->toBe(['MO', 'TU', 'WE', 'FR'])
+        ->and($data->bySetPos)->toBe(4);
 });
 
 test('monthly recurrence on specific day of month', function () {

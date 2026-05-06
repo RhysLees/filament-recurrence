@@ -58,12 +58,10 @@ return [
     | Calendar preview (modal)
     |--------------------------------------------------------------------------
     |
-    | How many upcoming occurrences to load when highlighting the calendar
-    | preview (can be higher than the textual list). Month grids default to 2.
+    | Number of month grids in the preview. The package loads enough occurrences
+    | to cover from the start date through the end of the last displayed month.
     |
     */
-    'calendar_preview_occurrences' => 40,
-
     'calendar_preview_month_count' => 2,
 
     /*

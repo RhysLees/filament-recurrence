@@ -240,9 +240,15 @@ class RecurrenceField extends Field
                         '4' => 'Fourth',
                         '-1' => 'Last',
                     ])
-                    ->live(),
+                    ->live()
+                    ->afterStateUpdated(function (Set $set, mixed $state): void {
+                        if (! filled($state)) {
+                            $set('by_day', null);
+                        }
+                    }),
 
                 CheckboxList::make('by_day')
+                    ->label(__('filament-recurrence::recurrence.fields.recurrence.repeat_on'))
                     ->options([
                         'MO' => 'Monday',
                         'TU' => 'Tuesday',
@@ -253,7 +259,8 @@ class RecurrenceField extends Field
                         'SU' => 'Sunday',
                     ])
                     ->columns(4)
-                    ->live(),
+                    ->live()
+                    ->visible(fn (Get $get) => filled($get('by_set_pos'))),
             ])->visible(fn (Get $get) => $get('monthly_type') === 'weekday'),
         ])
             ->visible(fn(Get $get) => $get('frequency') === 'MONTHLY');
@@ -358,7 +365,7 @@ class RecurrenceField extends Field
 
                     $calendarLimit = max(
                         $previewLimit,
-                        (int) config('filament-recurrence.calendar_preview_occurrences', 32)
+                        OccurrenceCalendar::previewOccurrenceLimitForMonthGrids($data->startDate)
                     );
 
                     $occurrences = $data->getOccurrences($previewLimit);

@@ -129,16 +129,22 @@ class RecurrenceData implements Arrayable
         try {
             $rrule = \Recurr\Rule::createFromString($rule);
 
+            [$byDay, $bySetPos] = self::normalizeParsedMonthlyWeekdays(
+                $rrule->getFreqAsText(),
+                $rrule->getByDay(),
+                $rrule->getBySetPosition(),
+            );
+
             return new self(
                 frequency: $rrule->getFreqAsText(),
                 interval: $rrule->getInterval(),
                 startDate: self::carbonOrNull($rrule->getStartDate()),
                 endDate: self::carbonOrNull($rrule->getUntil()),
                 count: $rrule->getCount(),
-                byDay: $rrule->getByDay(),
+                byDay: $byDay,
                 byMonthDay: $rrule->getByMonthDay(),
                 byMonth: $rrule->getByMonth(),
-                bySetPos: self::firstIntFromBySetPosition($rrule->getBySetPosition()),
+                bySetPos: $bySetPos,
                 timezone: $rrule->getTimezone() ?: config('filament-recurrence.timezone', 'UTC'),
             );
         } catch (\Throwable) {
@@ -170,6 +176,80 @@ class RecurrenceData implements Arrayable
         }
 
         return is_numeric($first) ? (int) $first : null;
+    }
+
+    /**
+     * RFC 5545: BYDAY may use nth prefixes (e.g. 4MO) for MONTHLY rules. Recurr forbids mixing
+     * prefixed and plain weekday tokens in one BYDAY list.
+     *
+     * @param  array<int, string>|null  $byDay
+     * @param  array<int, string>|null  $bySetPosition
+     * @return array{0: array<int, string>|null, 1: ?int}
+     */
+    private static function normalizeParsedMonthlyWeekdays(?string $frequency, ?array $byDay, ?array $bySetPosition): array
+    {
+        $setPosFromRule = self::firstIntFromBySetPosition($bySetPosition);
+
+        if (strtoupper((string) $frequency) !== 'MONTHLY' || $byDay === null || $byDay === []) {
+            return [$byDay, $setPosFromRule];
+        }
+
+        $pattern = '/^([+-]?[0-9]+)(MO|TU|WE|TH|FR|SA|SU)$/';
+        $codes = [];
+        $ordinals = [];
+
+        foreach ($byDay as $token) {
+            if (! is_string($token)) {
+                return [$byDay, $setPosFromRule];
+            }
+
+            if (preg_match($pattern, $token, $m)) {
+                $ordinals[] = (int) $m[1];
+                $codes[] = $m[2];
+            } else {
+                return [$byDay, $setPosFromRule];
+            }
+        }
+
+        $unique = array_unique($ordinals);
+
+        return count($unique) === 1
+            ? [$codes, $ordinals[0]]
+            : [$byDay, $setPosFromRule];
+    }
+
+    /**
+     * Week is chosen in the UI but no weekdays yet — BYSETPOS without BYDAY on MONTHLY hangs Recurr.
+     */
+    private function isIncompleteMonthlyWeekOrdinalChoice(): bool
+    {
+        return strtoupper((string) $this->frequency) === 'MONTHLY'
+            && filled($this->bySetPos)
+            && (! is_array($this->byDay) || $this->byDay === []);
+    }
+
+    /**
+     * Strip an ordinal prefix from a weekday token if present (form uses plain MO; rules may use 4MO).
+     */
+    private static function plainWeekdayToken(string $day): string
+    {
+        return preg_match('/^([+-]?[0-9]+)(MO|TU|WE|TH|FR|SA|SU)$/', $day, $m)
+            ? $m[2]
+            : $day;
+    }
+
+    /**
+     * @param  array<int, string>  $byDay
+     * @return array<int, string>
+     */
+    private static function prefixedMonthlyNthWeekdays(array $byDay, int $bySetPos): array
+    {
+        $pos = (string) $bySetPos;
+
+        return array_map(
+            fn (string $day) => $pos.self::plainWeekdayToken($day),
+            $byDay
+        );
     }
 
     public function toRule(): string
@@ -211,7 +291,11 @@ class RecurrenceData implements Arrayable
         // By Day
         if ($this->byDay && ! empty($this->byDay)) {
             if ($freq !== 'MONTHLY' || $useMonthlyNthWeekday) {
-                $parts[] = 'BYDAY=' . implode(',', $this->byDay);
+                $byDayValues = $useMonthlyNthWeekday
+                    ? self::prefixedMonthlyNthWeekdays($this->byDay, (int) $this->bySetPos)
+                    : $this->byDay;
+
+                $parts[] = 'BYDAY=' . implode(',', $byDayValues);
             }
         }
 
@@ -227,9 +311,13 @@ class RecurrenceData implements Arrayable
             $parts[] = 'BYMONTH=' . implode(',', $this->byMonth);
         }
 
-        // By Set Position
-        if (filled($this->bySetPos)) {
-            if ($freq !== 'MONTHLY' || $useMonthlyNthWeekday) {
+        // By Set Position (omit for MONTHLY nth-weekday: position is encoded in BYDAY as 4MO, -1FR, etc.)
+        // Never emit MONTHLY + orphan BYSETPOS (no BYDAY): invalid for RFC/Recurr and can exceed PHP max runtime.
+        if (filled($this->bySetPos) && ! $useMonthlyNthWeekday) {
+            $omitMonthlyOrphanSetPos = $freq === 'MONTHLY'
+                && (! is_array($this->byDay) || $this->byDay === []);
+
+            if (! $omitMonthlyOrphanSetPos) {
                 $parts[] = 'BYSETPOS=' . $this->bySetPos;
             }
         }
@@ -258,6 +346,10 @@ class RecurrenceData implements Arrayable
     {
         if (! $this->frequency) {
             return __('filament-recurrence::recurrence.messages.no_recurrence');
+        }
+
+        if ($this->isIncompleteMonthlyWeekOrdinalChoice()) {
+            return __('filament-recurrence::recurrence.messages.unable_to_preview');
         }
 
         try {
@@ -310,12 +402,12 @@ class RecurrenceData implements Arrayable
     {
         $format = config('filament-recurrence.preview_date_format', 'j F Y');
 
-        return $date->copy()->timezone((string) $this->timezone)->translatedFormat($format);
+        return $date->copy()->translatedFormat($format);
     }
 
     protected function formatTimeForPreview(Carbon $date): string
     {
-        return $date->copy()->timezone((string) $this->timezone)->format(
+        return $date->copy()->format(
             config('filament-recurrence.time_format', 'H:i')
         );
     }
@@ -326,14 +418,16 @@ class RecurrenceData implements Arrayable
             return false;
         }
 
-        $local = $this->startDate->copy()->timezone((string) $this->timezone);
-
-        return $local->format('H:i:s') !== '00:00:00';
+        return $this->startDate->format('H:i:s') !== '00:00:00';
     }
 
     public function getOccurrences(?int $limit = null, ?\DateTimeInterface $until = null): array
     {
         if (! $this->frequency || ! $this->startDate) {
+            return [];
+        }
+
+        if ($this->isIncompleteMonthlyWeekOrdinalChoice()) {
             return [];
         }
 
