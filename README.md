@@ -425,6 +425,26 @@ Please review [our security policy](../../security/policy) on how to report secu
 - Timezone select from [TappNetwork/filament-timezone-field](https://github.com/TappNetwork/filament-timezone-field)
 - [Filament](https://filamentphp.com)
 
+## Love this project? Help keep it growing! 🚀
+
+I built Filament Recurrence to be a powerful tool for the community, and your support is what keeps it running. If this project has saved you time or solved a headache, consider showing your appreciation:
+
+- **Spread the Word**: Share it, contribute code or feedback.
+
+- **One-off Donation**: Support via [Stripe](https://donate.stripe.com/3cIeVf1x3eWS2xq8f3dby02). 
+
+- **Become a Sponsor**: Help me reach my next development milestone by [Sponsoring on GitHub](https://github.com/sponsors/andreia).
+
+- **Buying me a Coffee** – If you prefer [Buy me a Coffee](https://buymeacoffee.com/andreiabohner) platform
+
+Thank you for supporting open-source development! ❤️
+
+<a href="https://buymeacoffee.com/andreiabohner" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
 ## License
 
 The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+
+---
+
+Made with ❤️ for the Filament community
