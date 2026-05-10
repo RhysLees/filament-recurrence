@@ -1,6 +1,6 @@
 # Filament Recurrence Plugin
 
-A comprehensive Filament PHP plugin for handling recurrence patterns with form fields, table columns, and infolist components. 
+A full-featured Filament PHP plugin for handling recurrence patterns with form fields, table columns, and infolist components. 
 
 ## Features
 
@@ -13,13 +13,15 @@ A comprehensive Filament PHP plugin for handling recurrence patterns with form f
 - **Model Trait** - Helper methods for working with recurring events
 - **RRULE Compatible** - Full RFC 5545 iCalendar recurrence rule support
 - **Customizable** - Extensive configuration options
-- **Per-record timezone** - Timezone select (via [TappNetwork/filament-timezone-field](https://github.com/TappNetwork/filament-timezone-field)), stored with recurrence JSON; defaults from `config/filament-recurrence.php`
+- **Per-record timezone** - Timezone select stored with recurrence JSON; defaults from `config/filament-recurrence.php`
+
+[![Filament Recurrence Demo Video](https://raw.githubusercontent.com/andreia/filament-recurrence/main/art/demo_video.jpg)](https://www.youtube.com/watch?v=NOg2IYgJ1W4)
 
 ## Requirements
 
 - PHP 8.3+
-- Laravel 12.0+
-- Filament 4.0/5.0
+- Laravel 12+
+- Filament 4/5
 
 ## Dependencies
 
@@ -438,8 +440,6 @@ I built Filament Recurrence to be a powerful tool for the community, and your su
 - **Buying me a Coffee** – If you prefer [Buy me a Coffee](https://buymeacoffee.com/andreiabohner) platform
 
 Thank you for supporting open-source development! ❤️
-
-<a href="https://buymeacoffee.com/andreiabohner" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 
 ## License
 
